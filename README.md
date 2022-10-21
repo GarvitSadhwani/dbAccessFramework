@@ -7,7 +7,7 @@ An interface to access your databases with secure authentication
 - Login to a hosted database or add new databases
     ![homepage](https://raw.githubusercontent.com/GarvitSadhwani/dbAccessFramework/main/templates/landing.JPG)
 - Connect and work with your database
-    ![homepage](https://raw.githubusercontent.com/GarvitSadhwani/dbAccessFramework/main/templates/fetch.JPG)
+    ![homepage](https://raw.githubusercontent.com/GarvitSadhwani/dbAccessFramework/main/templates/fetchdb.JPG)
     ![homepage](https://raw.githubusercontent.com/GarvitSadhwani/dbAccessFramework/main/templates/showtables.JPG)
 - More functionality to be added soon
 
