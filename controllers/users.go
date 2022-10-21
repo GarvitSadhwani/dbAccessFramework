@@ -3,6 +3,7 @@ package controllers
 import (
 	"database/sql"
 	"fmt"
+	"go_prac/houseware/dbAccessFramework/templates"
 	"net/http"
 	"text/template"
 	"time"
@@ -39,7 +40,10 @@ func StaticHandler(w http.ResponseWriter, file string) {
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	StaticHandler(w, "./templates/home.gohtml")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	tpl := templates.ParseFS(templates.FS, "home.gohtml")
+	tpl.Execute(w, nil)
+	//StaticHandler(w, "./templates/home.gohtml")
 }
 
 func landingHandler(w http.ResponseWriter, r *http.Request) {
