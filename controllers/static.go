@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"go_prac/houseware/dbAccessFramework/templates"
+	"go_prac/houseware/dbAccessFramework/views"
 	"net/http"
 	"text/template"
 	"time"
@@ -14,6 +15,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var router *chi.Mux
+var jwtKey = []byte("my_secret_key")
+
 type Credentials struct {
 	Username string `json:"email"`
 	Password string `json:"password"`
@@ -23,9 +27,6 @@ type Claims struct {
 	Username string `json:"username"`
 	jwt.StandardClaims
 }
-
-var router *chi.Mux
-var jwtKey = []byte("my_secret_key")
 
 func StaticHandler(w http.ResponseWriter, file string) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -40,10 +41,54 @@ func StaticHandler(w http.ResponseWriter, file string) {
 }
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	tpl := templates.ParseFS(templates.FS, "home.gohtml")
+	tpl, _ := views.ParseFS(templates.FS, "home.gohtml")
 	tpl.Execute(w, nil)
-	//StaticHandler(w, "./templates/home.gohtml")
+	//StaticHandler(w, "templates/home.gohtml")
+}
+
+func signupHandler(w http.ResponseWriter, r *http.Request) {
+	tpl, _ := views.ParseFS(templates.FS, "signup.gohtml")
+	tpl.Execute(w, nil)
+}
+
+func addUser(w http.ResponseWriter, r *http.Request) {
+	db, err := sql.Open("pgx", "host=localhost port=5432 user=frameworkdb password=frameworkdb dbname=dbacsfrm sslmode=disable")
+	if err != nil {
+		fmt.Println("error connecting to database")
+	}
+	err = db.Ping()
+	if err != nil {
+		fmt.Println("cant communicate with database")
+	}
+
+	res, err := db.Query("select count(*) from users")
+
+	if err != nil {
+		fmt.Println("error running query")
+	}
+	defer res.Close()
+	var count int
+	for res.Next() {
+		err = res.Scan(&count)
+		if err != nil {
+			fmt.Println("error retrieving data from row")
+		}
+	}
+	count++
+	enstr, err := bcrypt.GenerateFromPassword([]byte(r.FormValue("password")), 14)
+	if err != nil {
+		fmt.Printf("error computing password hash")
+	}
+	hashstr := string(enstr)
+	_, err = db.Exec(`insert into users values($1,$2,$3,$4,$5);`, count, r.FormValue("first_name"), r.FormValue("last_name"), r.FormValue("email"), hashstr)
+	if err != nil {
+		fmt.Println("error entering into database")
+	}
+
+	defer db.Close()
+	title := r.URL.Path[len("/adduser"):]
+	router.Get("/home", landingHandler)
+	http.Redirect(w, r, "/home"+title, http.StatusSeeOther)
 }
 
 func landingHandler(w http.ResponseWriter, r *http.Request) {
@@ -75,23 +120,13 @@ func landingHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-
-	w.Write([]byte(fmt.Sprintf("Welcome %s!", claims.Username)))
+	tpl, _ := views.ParseFS(templates.FS, "landing.gohtml")
+	tpl.Execute(w, claims.Username)
 }
 
 func authUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("in func")
 	var creds Credentials
-	// err := json.NewDecoder(r.Body).Decode(&creds)
-	// if err != nil {
-	// 	creds.Username = r.FormValue("email")
-	// 	creds.Password = r.FormValue("password")
-	// }
-
-	// fmt.Printf("u %v\n", creds.Username)
-	// fmt.Printf("p %v\n", creds.Password)
-
-	//verify password
 
 	db, err := sql.Open("pgx", "host=localhost port=5432 user=frameworkdb password=frameworkdb dbname=dbacsfrm sslmode=disable")
 	if err != nil {
@@ -124,8 +159,8 @@ func authUser(w http.ResponseWriter, r *http.Request) {
 	err = bcrypt.CompareHashAndPassword([]byte([]byte(pass)), []byte(r.FormValue("password")))
 	if err == nil {
 		fmt.Printf("pass verified")
-		creds.Username = f_name
-		expirationTime := time.Now().Add(10 * time.Second)
+		creds.Username = r.FormValue("email")
+		expirationTime := time.Now().Add(5 * time.Minute)
 		claims := &Claims{
 			Username: creds.Username,
 			StandardClaims: jwt.StandardClaims{

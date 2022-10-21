@@ -169,10 +169,6 @@ func landingHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	// title := r.URL.Path[len("/landing"):]
-	// router.Get("/homepage", homepageHandler)
-	// http.Redirect(w, r, "/homepage"+title, http.StatusSeeOther)
-	// w.Write([]byte(fmt.Sprintf("Welcome %s!", claims.Username)))
 	tpl, _ := template.ParseFiles("templates/landing.gohtml")
 	tpl.Execute(w, claims.Username)
 }
@@ -252,16 +248,6 @@ func authdb(w http.ResponseWriter, r *http.Request) {
 func authUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("in func")
 	var creds Credentials
-	//err := json.NewDecoder(r.Body).Decode(&creds)
-	// if err != nil {
-	// 	creds.Username = r.FormValue("email")
-	// 	creds.Password = r.FormValue("password")
-	// }
-
-	// fmt.Printf("u %v\n", creds.Username)
-	// fmt.Printf("p %v\n", creds.Password)
-
-	//verify password
 
 	db, err := sql.Open("pgx", "host=localhost port=5432 user=frameworkdb password=frameworkdb dbname=dbacsfrm sslmode=disable")
 	if err != nil {
@@ -343,12 +329,12 @@ func main() {
 		fmt.Println("cant communicate with database")
 	}
 	defer db.Close()
-	router.Get("/home", homeHandler)
-	router.Get("/landing", landingHandler)
-	router.Get("/signup", signupHandler)
+	router.Get("/home", controllers.homeHandler)
+	router.Get("/landing", controllers.landingHandler)
+	router.Get("/signup", controllers.signupHandler)
 	router.Get("/showtables", tableViewer)
-	router.Post("/newuser", addUser)
-	router.Post("/loginuser", authUser)
+	router.Post("/newuser", controllers.addUser)
+	router.Post("/loginuser", controllers.authUser)
 	router.Post("/fetchdb", authdb)
 	router.Post("/adddb", newdb)
 	fmt.Println("Starting server at port: 8080")
