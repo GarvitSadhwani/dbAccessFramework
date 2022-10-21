@@ -223,8 +223,8 @@ func authdb(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		fmt.Fprint(w, "Connected to: ", db_name)
-		fmt.Fprint(w, "\n \n <a href=\"/showtables\">Click to view list of tables present here</a>")
-		fmt.Fprint(w, "\n \n <a href=\"/landing\">Click to go back</a>")
+		fmt.Fprint(w, "<br><br> <a href=\"/showtables\">Click to view list of tables present here</a>")
+		fmt.Fprint(w, "<br><br> <a href=\"/landing\">Click to go back</a>")
 	} else {
 		fmt.Print("wrong pass")
 		router.Get("/landing", landingHandler)
@@ -305,7 +305,7 @@ func authUser(w http.ResponseWriter, r *http.Request) {
 func tableViewer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprint(w, "!List of tables retrieved from database host!")
-	fmt.Fprint(w, "\n \n <a href=\"/landing\">Click to go to homepage/a>")
+	fmt.Fprint(w, "<br><br> <a href=\"/landing\">Click to go to homepage</a>")
 }
 
 func main() {
