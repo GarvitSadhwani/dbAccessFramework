@@ -3,6 +3,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"go_prac/houseware/dbAccessFramework/controllers"
+	"go_prac/houseware/dbAccessFramework/templates"
+	"go_prac/houseware/dbAccessFramework/views"
 	"net/http"
 	"text/template"
 	"time"
@@ -26,26 +29,7 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-func StaticHandler(w http.ResponseWriter, file string) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	tpl, err := template.ParseFiles(file)
-	if err != nil {
-		fmt.Printf("error parsing")
-	}
-	err = tpl.Execute(w, nil)
-	if err != nil {
-		fmt.Printf("error executing")
-	}
-}
-
-func homeHandler(w http.ResponseWriter, r *http.Request) {
-	StaticHandler(w, "templates/home.gohtml")
-}
-
-func signupHandler(w http.ResponseWriter, r *http.Request) {
-	StaticHandler(w, "templates/signup.gohtml")
-}
-
+//Funciton to add a new User to the database
 func addUser(w http.ResponseWriter, r *http.Request) {
 	db, err := sql.Open("pgx", "host=localhost port=5432 user=frameworkdb password=frameworkdb dbname=dbacsfrm sslmode=disable")
 	if err != nil {
@@ -86,6 +70,7 @@ func addUser(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/home"+title, http.StatusSeeOther)
 }
 
+//Function to add a new Database for a User
 func newdb(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("token")
 	if err != nil {
@@ -140,6 +125,7 @@ func newdb(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/landing"+title, http.StatusSeeOther)
 }
 
+//Function to get the User to their homepage
 func landingHandler(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("token")
 	if err != nil {
@@ -173,6 +159,7 @@ func landingHandler(w http.ResponseWriter, r *http.Request) {
 	tpl.Execute(w, claims.Username)
 }
 
+//Function to authenticate and provide User access to their database
 func authdb(w http.ResponseWriter, r *http.Request) {
 	c, err := r.Cookie("token")
 	if err != nil {
@@ -245,6 +232,7 @@ func authdb(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//Function to authenticate User Credentials and post it in the Cookie for user
 func authUser(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("in func")
 	var creds Credentials
@@ -281,7 +269,7 @@ func authUser(w http.ResponseWriter, r *http.Request) {
 	if err == nil {
 		fmt.Printf("pass verified")
 		creds.Username = r.FormValue("email")
-		expirationTime := time.Now().Add(5 * time.Minute)
+		expirationTime := time.Now().Add(24 * time.Hour) //Adding an expiry of 24 hours
 		claims := &Claims{
 			Username: creds.Username,
 			StandardClaims: jwt.StandardClaims{
@@ -306,12 +294,14 @@ func authUser(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/landing"+title, http.StatusSeeOther)
 	} else {
 		fmt.Print("wrong pass")
-		router.Get("/home", homeHandler)
+		tpl, _ := views.ParseFS(templates.FS, "home.gohtml")
+		router.Get("/home", controllers.StaticHandler(tpl))
 		http.Redirect(w, r, "/home"+title, http.StatusSeeOther)
 	}
 
 }
 
+//Function that can retrieve the list of Tables from Users' Database host
 func tableViewer(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	fmt.Fprint(w, "!List of tables retrieved from database host!")
@@ -329,12 +319,14 @@ func main() {
 		fmt.Println("cant communicate with database")
 	}
 	defer db.Close()
-	router.Get("/home", controllers.homeHandler)
-	router.Get("/landing", controllers.landingHandler)
-	router.Get("/signup", controllers.signupHandler)
+	tpl, _ := views.ParseFS(templates.FS, "home.gohtml")
+	router.Get("/home", controllers.StaticHandler(tpl))
+	router.Get("/landing", landingHandler)
+	tpl, _ = views.ParseFS(templates.FS, "signup.gohtml")
+	router.Get("/signup", controllers.StaticHandler(tpl))
 	router.Get("/showtables", tableViewer)
-	router.Post("/newuser", controllers.addUser)
-	router.Post("/loginuser", controllers.authUser)
+	router.Post("/newuser", addUser)
+	router.Post("/loginuser", authUser)
 	router.Post("/fetchdb", authdb)
 	router.Post("/adddb", newdb)
 	fmt.Println("Starting server at port: 8080")
